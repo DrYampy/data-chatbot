@@ -1,0 +1,72 @@
+cubes:
+  - name: visits
+    sql: SELECT * FROM datasets.visits_v1
+
+    measures:
+      - name: total_visits
+        type: count
+        title: "Total Visits"
+
+      - name: total_bounces
+        type: sum
+        sql: IsBounce
+        title: "Total Bounces"
+
+      - name: bounce_rate
+        type: number
+        sql: "CAST({total_bounces} AS Float64) / NULLIF({total_visits}, 0)"
+        format: percent
+        title: "Bounce Rate"
+
+      - name: avg_session_duration
+        type: avg
+        sql: Duration
+        title: "Avg Session Duration"
+
+      - name: total_page_views
+        type: sum
+        sql: PageViews
+        title: "Total Page Views"
+
+      - name: page_views_per_visit
+        type: number
+        sql: "CAST({total_page_views} AS Float64) / NULLIF({total_visits}, 0)"
+        title: "Page Views per Visit"
+
+      - name: visits_with_goals
+        type: count
+        filters:
+          - sql: "{CUBE}.GoalReachesAny > 0"
+        title: "Visits with Goals"
+
+      - name: goal_conversion_rate
+        type: number
+        sql: "CAST({visits_with_goals} AS Float64) / NULLIF({total_visits}, 0)"
+        format: percent
+        title: "Goal Conversion Rate"
+
+    dimensions:
+      - name: start_time
+        sql: StartTime
+        type: time
+        title: "Start Time"
+
+      - name: traffic_source
+        sql: TraficSourceID
+        type: number
+        title: "Traffic Source ID"
+
+      - name: os
+        sql: OS
+        type: number
+        title: "OS ID"
+
+      - name: is_mobile
+        sql: IsMobile
+        type: boolean
+        title: "Is Mobile"
+
+      - name: browser
+        sql: UserAgent
+        type: number
+        title: "Browser ID"

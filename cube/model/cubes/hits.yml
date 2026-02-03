@@ -1,0 +1,34 @@
+cubes:
+  - name: hits
+    sql: SELECT * FROM datasets.hits_v1
+
+    measures:
+      - name: total_hits
+        type: count
+        title: "Total Hits"
+
+      - name: unique_users
+        type: count_distinct
+        sql: UserID
+        title: "Unique Users"
+
+    dimensions:
+      - name: event_time
+        sql: EventTime
+        type: time
+        title: "Event Time"
+
+      - name: os
+        sql: OS
+        type: number
+        title: "OS ID"
+
+      - name: region
+        sql: RegionID
+        type: number
+        title: "Region ID"
+
+      - name: url
+        sql: URL
+        type: string
+        title: "URL"

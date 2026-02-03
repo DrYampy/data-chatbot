@@ -1,0 +1,54 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cube:
+    image: cubejs/cube:latest
+    container_name: cube
+    ports:
+      - "4000:4000"
+    environment:
+      - CUBEJS_DB_TYPE=clickhouse
+      - CUBEJS_DB_HOST=clickhouse
+      - CUBEJS_DB_PORT=8123
+      - CUBEJS_DB_NAME=datasets
+      - CUBEJS_DB_USER=default
+      - CUBEJS_API_SECRET=${CUBEJS_API_SECRET:-your-very-secret-token}
+      - CUBEJS_DEV_MODE=true
+    volumes:
+      - ./cube/model:/cube/conf/model
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: mcp_server/Dockerfile
+    container_name: mcp-server
+    ports:
+      - "8000:8000"
+    environment:
+      - CUBEJS_API_URL=http://cube:4000/cubejs-api/v1
+      - CUBEJS_API_SECRET=${CUBEJS_API_SECRET:-your-very-secret-token}
+      - CLICKHOUSE_HOST=clickhouse
+    depends_on:
+      cube:
+        condition: service_started
+    volumes:
+      - ./mcp_server:/app
+      - .:/repo
+
+volumes:
+  clickhouse_data:

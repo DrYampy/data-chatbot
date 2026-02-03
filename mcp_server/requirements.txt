@@ -1,0 +1,7 @@
+mcp[cli]>=1.2.1
+fastapi
+uvicorn
+requests
+PyJWT
+clickhouse-connect
+httpx
