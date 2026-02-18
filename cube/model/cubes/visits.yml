@@ -1,0 +1,190 @@
+cubes:
+  - name: visits
+    sql: "SELECT * FROM datasets.visits_v1 WHERE Sign = 1"
+    title: "Visits"
+    description: >
+      Session-level web analytics data from the Yandex Metrica dataset.
+      Each row represents one user session with aggregated metrics like
+      duration, page views, bounce status, and goal completions.
+
+    joins:
+      - name: hits
+        sql: "{visits}.UserID = {hits}.UserID AND {visits}.CounterID = {hits}.CounterID"
+        relationship: one_to_many
+
+    measures:
+      - name: total_visits
+        type: count
+        title: "Total Visits"
+        description: "Count of all sessions (Sign=1 rows only, correctly handling CollapsingMergeTree)."
+
+      - name: total_bounces
+        type: sum
+        sql: IsBounce
+        title: "Total Bounces"
+        description: "Sum of bounced sessions. A bounce is a session with only one page view."
+
+      - name: bounce_rate
+        type: number
+        sql: "CAST({total_bounces} AS Float64) / NULLIF({total_visits}, 0)"
+        format: percent
+        title: "Bounce Rate"
+        description: "Percentage of sessions that bounced (single page view, no further interaction)."
+
+      - name: avg_session_duration
+        type: avg
+        sql: Duration
+        title: "Avg Session Duration (s)"
+        description: "Average session duration in seconds."
+
+      - name: total_page_views
+        type: sum
+        sql: PageViews
+        title: "Total Page Views"
+        description: "Sum of page views across all sessions."
+
+      - name: page_views_per_visit
+        type: number
+        sql: "CAST({total_page_views} AS Float64) / NULLIF({total_visits}, 0)"
+        title: "Page Views per Visit"
+        description: "Average number of pages viewed per session."
+
+      - name: visits_with_goals
+        type: count
+        filters:
+          - sql: "{CUBE}.GoalReachesAny > 0"
+        title: "Visits with Goals"
+        description: "Count of sessions where at least one goal was reached."
+
+      - name: goal_conversion_rate
+        type: number
+        sql: "CAST({visits_with_goals} AS Float64) / NULLIF({total_visits}, 0)"
+        format: percent
+        title: "Goal Conversion Rate"
+        description: "Percentage of sessions that completed at least one goal."
+
+    dimensions:
+      - name: visit_id
+        sql: VisitID
+        type: number
+        title: "Visit ID"
+        description: "Unique visit identifier."
+        primary_key: true
+
+      - name: start_time
+        sql: StartTime
+        type: time
+        title: "Session Start Time"
+        description: "Timestamp when the session began."
+
+      - name: traffic_source_name
+        type: string
+        title: "Traffic Source"
+        description: "Human-readable traffic source. Values: Direct, Search, Referral, Ad, Social, Email, Recommendations, Unknown."
+        sql: >
+          CASE {CUBE}.TraficSourceID
+            WHEN 0  THEN 'Direct'
+            WHEN 1  THEN 'Search'
+            WHEN 2  THEN 'Referral'
+            WHEN 3  THEN 'Ad'
+            WHEN 4  THEN 'Social'
+            WHEN 5  THEN 'Email'
+            WHEN 6  THEN 'Recommendations'
+            ELSE        'Unknown'
+          END
+
+      - name: os_name
+        type: string
+        title: "Operating System"
+        description: "Human-readable operating system name."
+        sql: >
+          CASE {CUBE}.OS
+            WHEN 0 THEN 'Unknown'
+            WHEN 1 THEN 'Windows'
+            WHEN 2 THEN 'macOS'
+            WHEN 3 THEN 'Android'
+            WHEN 4 THEN 'iOS'
+            WHEN 5 THEN 'Linux'
+            WHEN 6 THEN 'WinPhone'
+            WHEN 7 THEN 'BlackBerry'
+            ELSE       'Other'
+          END
+
+      - name: browser_name
+        type: string
+        title: "Browser"
+        description: "Human-readable browser name."
+        sql: >
+          CASE {CUBE}.UserAgent
+            WHEN 0 THEN 'Unknown'
+            WHEN 1 THEN 'IE'
+            WHEN 2 THEN 'Firefox'
+            WHEN 3 THEN 'Chrome'
+            WHEN 4 THEN 'Safari'
+            WHEN 5 THEN 'Opera'
+            WHEN 6 THEN 'Yandex Browser'
+            WHEN 7 THEN 'Android Browser'
+            WHEN 8 THEN 'Samsung Browser'
+            ELSE       'Unknown'
+          END
+
+      - name: gender
+        type: string
+        title: "Gender"
+        description: "Estimated visitor gender. Values: Unknown, Male, Female."
+        sql: >
+          CASE {CUBE}.Sex
+            WHEN 1 THEN 'Male'
+            WHEN 2 THEN 'Female'
+            ELSE       'Unknown'
+          END
+
+      - name: income_level
+        type: string
+        title: "Income Level"
+        description: "Estimated visitor income bracket."
+        sql: >
+          CASE {CUBE}.Income
+            WHEN 1 THEN 'Low'
+            WHEN 2 THEN 'Below Average'
+            WHEN 3 THEN 'Average'
+            WHEN 4 THEN 'Above Average'
+            WHEN 5 THEN 'High'
+            ELSE       'Unknown'
+          END
+
+      - name: is_mobile
+        sql: IsMobile
+        type: boolean
+        title: "Is Mobile"
+        description: "True when the session originated from a mobile device."
+
+      - name: is_new
+        sql: IsNew
+        type: boolean
+        title: "Is New Visitor"
+        description: "True when this was the visitor's first ever session."
+
+      - name: search_phrase
+        sql: SearchPhrase
+        type: string
+        title: "Search Phrase"
+        description: "The search query that brought the visitor, if the traffic source was Search. Empty string if not applicable."
+
+      - name: utm_source
+        sql: UTMSource
+        type: string
+        title: "UTM Source"
+        description: "UTM source parameter from the session's landing URL."
+
+      - name: utm_medium
+        sql: UTMMedium
+        type: string
+        title: "UTM Medium"
+        description: "UTM medium parameter from the session's landing URL."
+
+      - name: utm_campaign
+        sql: UTMCampaign
+        type: string
+        title: "UTM Campaign"
+        description: "UTM campaign parameter from the session's landing URL."
