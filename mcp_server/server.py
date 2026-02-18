@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from mcp.server.sse import SseServerTransport
 import uvicorn
 import asyncio
+from ingest_data import ingest
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -85,6 +86,22 @@ async def explain_query(query: dict):
     """Get the underlying SQL for a given Cube query."""
     result = await cube_request("POST", "/sql", {"query": query})
     return result
+
+@mcp.tool()
+async def seed_data():
+    """
+    Triggers the ingestion of the Metrica dataset into ClickHouse.
+    This is an idempotent process - it will only load data if the tables are empty.
+    """
+    try:
+        # Run in a thread to avoid blocking the event loop if it's long-running
+        # though for a PoC simple await or sync call might be okay if we use run_in_executor
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, ingest)
+        return {"status": "success", "message": "Data ingestion completed or already seeded."}
+    except Exception as e:
+        logger.error(f"Ingestion failed: {e}")
+        return {"status": "error", "message": str(e)}
 
 # FastAPI setup for SSE
 app = FastAPI()
