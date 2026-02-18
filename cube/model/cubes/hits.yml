@@ -1,0 +1,120 @@
+cubes:
+  - name: hits
+    sql: SELECT * FROM datasets.hits_v1
+    title: "Page Hits"
+    description: >
+      Individual page view and event records from the Yandex Metrica dataset.
+      Each row is one HTTP request logged by the Metrica counter, including
+      page views, events, downloads, and other tracked interactions.
+
+    measures:
+      - name: total_hits
+        type: count
+        title: "Total Hits"
+        description: "Count of all recorded hits, including events and bot traffic."
+
+      - name: unique_users
+        type: count_distinct
+        sql: UserID
+        title: "Unique Users"
+        description: "Count of distinct visitors (unique UserIDs)."
+
+      - name: total_page_views
+        type: count
+        title: "Real Page Views"
+        description: "Page views only — excludes events (IsEvent=0) and hits marked as don't-count (DontCountHits=0)."
+        filters:
+          - sql: "{CUBE}.DontCountHits = 0 AND {CUBE}.IsEvent = 0"
+
+      - name: avg_first_paint
+        type: avg
+        sql: FirstPaintTiming
+        title: "Avg First Paint (ms)"
+        description: "Average first-paint timing in milliseconds. Only includes hits where a measurement was recorded (> 0)."
+        filters:
+          - sql: "{CUBE}.FirstPaintTiming > 0"
+
+    dimensions:
+      - name: watch_id
+        sql: WatchID
+        type: number
+        title: "Watch ID"
+        description: "Unique hit identifier."
+        primary_key: true
+
+      - name: event_time
+        sql: EventTime
+        type: time
+        title: "Event Time"
+        description: "Timestamp of the hit."
+
+      - name: os_name
+        type: string
+        title: "Operating System"
+        description: "Human-readable operating system name."
+        sql: >
+          CASE {CUBE}.OS
+            WHEN 0 THEN 'Unknown'
+            WHEN 1 THEN 'Windows'
+            WHEN 2 THEN 'macOS'
+            WHEN 3 THEN 'Android'
+            WHEN 4 THEN 'iOS'
+            WHEN 5 THEN 'Linux'
+            WHEN 6 THEN 'WinPhone'
+            WHEN 7 THEN 'BlackBerry'
+            ELSE       'Other'
+          END
+
+      - name: browser_name
+        type: string
+        title: "Browser"
+        description: "Human-readable browser name."
+        sql: >
+          CASE {CUBE}.UserAgent
+            WHEN 0 THEN 'Unknown'
+            WHEN 1 THEN 'IE'
+            WHEN 2 THEN 'Firefox'
+            WHEN 3 THEN 'Chrome'
+            WHEN 4 THEN 'Safari'
+            WHEN 5 THEN 'Opera'
+            WHEN 6 THEN 'Yandex Browser'
+            WHEN 7 THEN 'Android Browser'
+            WHEN 8 THEN 'Samsung Browser'
+            ELSE       'Unknown'
+          END
+
+      - name: region
+        sql: RegionID
+        type: number
+        title: "Region ID"
+        description: "Yandex GeoBase region identifier. Numeric — requires a lookup table for human-readable names."
+
+      - name: url
+        sql: URL
+        type: string
+        title: "Full URL"
+        description: "The complete URL of the page that was hit."
+
+      - name: url_domain
+        sql: URLDomain
+        type: string
+        title: "URL Domain"
+        description: "Domain portion of the hit URL, useful for grouping by site section."
+
+      - name: referer_domain
+        sql: RefererDomain
+        type: string
+        title: "Referer Domain"
+        description: "Domain of the referring URL that led to this hit."
+
+      - name: is_mobile
+        sql: IsMobile
+        type: boolean
+        title: "Is Mobile"
+        description: "True when the hit came from a mobile device."
+
+      - name: title
+        sql: Title
+        type: string
+        title: "Page Title"
+        description: "The HTML title of the page that was hit."
