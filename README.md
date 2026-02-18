@@ -2,11 +2,23 @@
 
 A proof of concept demonstrating how a **semantic layer** between an LLM and a data warehouse makes AI-driven analytics reliable, governed, and useful.
 
-## Why a Semantic Layer?
+## Problem Statement
 
-Without Cube, an LLM would need to write raw SQL against 100+ column tables filled with opaque integer IDs (`TraficSourceID = 3`, `OS = 2`, `UserAgent = 6`). It would need to know that `visits_v1` uses a CollapsingMergeTree engine and requires `WHERE Sign = 1` to avoid double-counting. It would hallucinate column names and produce incorrect aggregations.
+People want to be able to talk to their data using natural language. The most intuitive architecture for this is to have an LLM write SQL and run it directly against the target warehouse. In practice, this is a chaotic approach because the LLM lacks critical context:
 
-With Cube as a semantic layer, the LLM asks for `visits.traffic_source_name = 'Ad'` and `visits.bounce_rate` — vetted, human-readable, correctly computed metrics. The business logic lives in YAML definitions, not in LLM-generated SQL. This is the pattern that scales.
+1. **What are the tables about?** — Without understanding the schema's intent, the LLM guesses at column meanings, joins, and filters.
+2. **What is a metric vs. a dimension?** — The LLM has no way to know which columns are measures, how they should be aggregated, or what business logic governs their computation.
+3. **What are the data quirks?** — Engine-specific semantics (e.g. deduplication flags, materialized view conventions) are invisible to a model working from raw DDL alone.
+
+The result is hallucinated column names, incorrect aggregations, and queries that look plausible but return wrong answers.
+
+## Proposed Solution
+
+This project tests a different question: **what is it like to chat with a data bot when the LLM actually has context about what's in the warehouse?**
+
+Specifically, we give the LLM access to a semantic model stored in [Cube](https://cube.dev/) — a layer of human-readable metric and dimension definitions that sit on top of the raw tables. Instead of generating arbitrary SQL, the LLM queries the warehouse through Cube via a custom MCP server, meaning every query is constrained to vetted, well-defined metrics and dimensions.
+
+This PoC explores whether that combination — semantic context + a governed query path — produces a meaningfully better conversational analytics experience.
 
 ## Architecture
 
