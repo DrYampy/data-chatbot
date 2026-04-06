@@ -55,8 +55,8 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
-    command: ["python", "ingest_data.py", "--sample"]
-    # To load the full dataset instead: command: ["python", "ingest_data.py"]
+    command: ["python", "ingest_data.py"]
+    # To load only a 1M-row sample instead: command: ["python", "ingest_data.py", "--sample"]
 
   mcp-server:
     build:
